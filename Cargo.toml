@@ -1,15 +1,15 @@
 [package]
-name = "rustdesk"
+name = "hhitdesk"
 version = "1.3.9"
 authors = ["rustdesk <info@rustdesk.com>"]
-edition = "2021"
+edition = "2025"
 build= "build.rs"
-description = "RustDesk Remote Desktop"
-default-run = "rustdesk"
+description = "hhit Remote Desktop"
+default-run = "hhitdesk"
 rust-version = "1.75"
 
 [lib]
-name = "librustdesk"
+name = "libhhitdesk"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [[bin]]
