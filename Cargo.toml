@@ -1,15 +1,15 @@
 [package]
-name = "hhitdesk"
+name = "rustdesk"
 version = "1.3.9"
 authors = ["rustdesk <info@rustdesk.com>"]
-edition = "2025"
+edition = "2021"
 build= "build.rs"
-description = "hhit Remote Desktop"
-default-run = "hhitdesk"
+description = "Remote Desktop"
+default-run = "rustdesk"
 rust-version = "1.75"
 
 [lib]
-name = "libhhitdesk"
+name = "librustdesk"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [[bin]]
@@ -184,9 +184,9 @@ exclude = ["vdi/host", "examples/custom_plugin"]
 
 [package.metadata.winres]
 LegalCopyright = "Copyright © 2025 hhit Ltd. All rights reserved."
-ProductName = "HhitDesk"
-FileDescription = "HhitDesk Remote Desktop"
-OriginalFilename = "hhitdesk.exe"
+ProductName = "RustDesk"
+FileDescription = "Remote Desktop"
+OriginalFilename = "rustdesk.exe"
 
 [target.'cfg(target_os="windows")'.build-dependencies]
 winres = "0.1"
@@ -202,8 +202,8 @@ hound = "3.5"
 docopt = "1.1"
 
 [package.metadata.bundle]
-name = "HhitDesk"
-identifier = "com.carriez.hhitdesk"
+name = "RustDesk"
+identifier = "com.carriez.rustdesk"
 icon = ["res/32x32.png", "res/128x128.png", "res/128x128@2x.png"]
 osx_minimum_system_version = "10.14"
 
