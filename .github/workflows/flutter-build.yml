@@ -398,7 +398,7 @@ jobs:
         # crate::get_app_name(), so the two stay consistent.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
-          if (Test-Path ../../rustdesk/rustdesk.exe) { mv ../../rustdesk/rustdesk.exe ../../rustdesk/RemoteDesk.exe }
+          if (Test-Path ./rustdesk/rustdesk.exe) { mv ./rustdesk/rustdesk.exe ./rustdesk/RemoteDesk.exe }
           pushd ./res/msi
           python preprocess.py --arp --app-name RemoteDesk -d ../../rustdesk
           nuget restore msi.sln
