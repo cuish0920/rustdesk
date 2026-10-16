@@ -117,7 +117,7 @@ fn has_no_controlling_conns() -> bool {
 
 #[cfg(not(any(not(target_os = "windows"), feature = "flutter")))]
 fn has_no_controlling_conns() -> bool {
-    let app_exe = format!("{}.exe", crate::get_app_name().to_lowercase());
+    let app_exe = crate::get_exe_name().to_lowercase();
     for arg in [
         "--connect",
         "--play",

@@ -1076,6 +1076,24 @@ pub fn get_app_name() -> String {
     hbb_common::config::APP_NAME.read().unwrap().clone()
 }
 
+/// The on-disk executable name, decoupled from the brand name (`get_app_name`).
+///
+/// The Windows build produces `rustdesk.exe` regardless of the brand name, because
+/// `flutter/windows/CMakeLists.txt` hardcodes `set(BINARY_NAME "rustdesk")`. The brand
+/// (product name, service name, install folder, config dir) still comes from
+/// `get_app_name()`, but any path that points at the executable file itself must use this.
+#[inline]
+pub fn get_exe_name() -> String {
+    #[cfg(target_os = "windows")]
+    {
+        "rustdesk.exe".to_owned()
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        get_app_name()
+    }
+}
+
 #[inline]
 pub fn is_rustdesk() -> bool {
     hbb_common::config::APP_NAME.read().unwrap().eq("RustDesk")

@@ -390,15 +390,15 @@ jobs:
         # both x64 and ARM64 platform configs; WcaUtil/DUtil ship arm64 libs. msbuild platform
         # is x64 / ARM64; the produced Package.msi is globbed since its bin/<platform>/ dir varies.
         #
-        # RemoteDesk: preprocess.py locates and executes "<app-name>.exe" inside the dist dir,
-        # so the built binary is renamed to RemoteDesk.exe first and --app-name RemoteDesk is
-        # passed explicitly. The MSI then installs the file under that name (the File element
-        # uses Name="$(var.Product).exe") and registers the service, startup shortcut, registry
-        # keys and install folder as RemoteDesk -- which is what the app itself derives from
-        # crate::get_app_name(), so the two stay consistent.
+        # RemoteDesk: the brand (product name, service name, install folder, config dir,
+        # registry keys, URL protocol) is RemoteDesk via --app-name RemoteDesk, while the
+        # on-disk executable keeps the binary name rustdesk.exe. preprocess.py injects
+        # <?define AppExe="rustdesk.exe" ?> so the MSI File element, service binpath, firewall
+        # rules and icon/URL-protocol registry entries all point at the real file, keeping
+        # everything consistent with the Flutter build output (flutter/windows/CMakeLists.txt
+        # sets BINARY_NAME to "rustdesk").
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
-          if (Test-Path ./rustdesk/rustdesk.exe) { mv ./rustdesk/rustdesk.exe ./rustdesk/RemoteDesk.exe }
           pushd ./res/msi
           python preprocess.py --arp --app-name RemoteDesk -d ../../rustdesk
           nuget restore msi.sln

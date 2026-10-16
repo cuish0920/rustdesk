@@ -1459,7 +1459,7 @@ fn get_install_info_with_subkey(subkey: String) -> (String, String, String, Stri
         "%ProgramData%\\Microsoft\\Windows\\Start Menu\\Programs\\{}",
         crate::get_app_name()
     );
-    let exe = format!("{}\\{}.exe", path, crate::get_app_name());
+    let exe = format!("{}\\{}", path, crate::get_exe_name());
     (subkey, path, start_menu, exe)
 }
 
@@ -1495,13 +1495,13 @@ pub fn rename_exe_cmd(src_exe: &str, path: &str) -> ResultType<String> {
         .ok_or(anyhow!("Can't get file name of {src_exe}"))?
         .to_string_lossy()
         .to_string();
-    let app_name = crate::get_app_name();
-    if src_exe_filename == format!("{app_name}.exe") {
+    let exe_name = crate::get_exe_name();
+    if src_exe_filename == exe_name {
         Ok("".to_owned())
     } else {
         Ok(format!(
             "
-        move /Y \"{path}\\{src_exe_filename}\" \"{path}\\{app_name}.exe\"
+        move /Y \"{path}\\{src_exe_filename}\" \"{path}\\{exe_name}\"
         ",
         ))
     }
@@ -1787,6 +1787,7 @@ pub fn run_before_uninstall() -> ResultType<()> {
 
 fn get_before_uninstall(kill_self: bool) -> String {
     let app_name = crate::get_app_name();
+    let exe_name = crate::get_exe_name();
     let ext = app_name.to_lowercase();
     let filter = if kill_self {
         "".to_string()
@@ -1799,7 +1800,7 @@ fn get_before_uninstall(kill_self: bool) -> String {
     sc stop {app_name}
     sc delete {app_name}
     taskkill /F /IM {broker_exe}
-    taskkill /F /IM {app_name}.exe{filter}
+    taskkill /F /IM {exe_name}{filter}
     reg delete HKEY_CLASSES_ROOT\\.{ext} /f
     reg delete HKEY_CLASSES_ROOT\\{ext} /f
     netsh advfirewall firewall delete rule name=\"{app_name} Service\"
@@ -3285,6 +3286,7 @@ pub fn uninstall_service(show_new_window: bool, _: bool) -> bool {
     log::info!("Uninstalling service...");
     let filter = format!(" /FI \"PID ne {}\"", get_current_pid());
     Config::set_option("stop-service".into(), "Y".into());
+    let exe_name = crate::get_exe_name();
     let cmds = format!(
         "
     chcp 65001
@@ -3292,7 +3294,7 @@ pub fn uninstall_service(show_new_window: bool, _: bool) -> bool {
     sc delete {app_name}
     if exist \"%PROGRAMDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\{app_name} Tray.lnk\" del /f /q \"%PROGRAMDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\{app_name} Tray.lnk\"
     taskkill /F /IM {broker_exe}
-    taskkill /F /IM {app_name}.exe{filter}
+    taskkill /F /IM {exe_name}{filter}
     ",
         app_name = crate::get_app_name(),
         broker_exe = WIN_TOPMOST_INJECTED_PROCESS_EXE,
@@ -3308,6 +3310,7 @@ pub fn uninstall_service(show_new_window: bool, _: bool) -> bool {
 
 fn get_install_service_commands(path: &str, exe: &str) -> ResultType<String> {
     let app_name = crate::get_app_name();
+    let exe_name = crate::get_exe_name();
     for value in [path, exe] {
         validate_install_value(value)?;
     }
@@ -3327,7 +3330,7 @@ fn get_install_service_commands(path: &str, exe: &str) -> ResultType<String> {
     Ok(format!(
         "
 chcp 65001
-taskkill /F /IM {app_name}.exe{filter}
+taskkill /F /IM {exe_name}{filter}
 {tray_shortcut_commands}
 copy /Y \"%RUSTDESK_OUTPUT_DIR%\\{app_name} Tray.lnk\" \"%PROGRAMDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\\"
 {import_config}
@@ -3411,7 +3414,7 @@ pub fn update_me(debug: bool) -> ResultType<()> {
     let is_msi = is_msi_installed().ok();
     let reg_msi_key = get_reg_msi_key(&subkey, is_msi)?;
 
-    let app_exe_name = &format!("{}.exe", &app_name);
+    let app_exe_name = &crate::get_exe_name();
     // NOTE: The pids below are matched by command line, which can silently come
     // back empty even while the processes are running:
     // - a 32-bit build cannot read the command line of a 64-bit process, so it
@@ -3550,7 +3553,7 @@ reg add {subkey} /f /v EstimatedSize /t REG_DWORD /d {size}
         "
 chcp 65001
 sc stop {app_name}
-taskkill /F /IM {app_name}.exe{filter}
+taskkill /F /IM {exe_name}{filter}
 {reg_cmd}
 {copy_exe}
 {rename_exe}
@@ -3561,6 +3564,7 @@ taskkill /F /IM {app_name}.exe{filter}
 {sleep}
     ",
         app_name = app_name,
+        exe_name = crate::get_exe_name(),
         copy_exe = copy_exe_cmd(&src_exe, &exe, &path)?,
         rename_exe = rename_exe_cmd(&src_exe, &path)?,
         remove_meta_toml = remove_meta_toml_cmd(is_msi.unwrap_or(true), &path),
@@ -4192,6 +4196,7 @@ pub fn try_kill_rustdesk_main_window_process() -> ResultType<()> {
     // Kill rustdesk.exe without extra arg, should only be called by --server
     // We can find the exact process which occupies the ipc, see more from https://github.com/winsiderss/systeminformer
     let app_name = crate::get_app_name().to_lowercase();
+    let exe_name = crate::get_exe_name().to_lowercase();
     log::info!("try kill main window process");
     use hbb_common::sysinfo::System;
     let mut sys = System::new();
@@ -4207,7 +4212,7 @@ pub fn try_kill_rustdesk_main_window_process() -> ResultType<()> {
     for (_, p) in sys.processes().iter() {
         let p_name = p.name().to_lowercase();
         // name equal
-        if !(p_name == app_name || p_name == app_name.clone() + ".exe") {
+        if !(p_name == exe_name || p_name == exe_name.trim_end_matches(".exe")) {
             continue;
         }
         // arg more than 1

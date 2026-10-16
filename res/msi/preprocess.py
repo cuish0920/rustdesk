@@ -84,6 +84,14 @@ def make_parser():
         "--app-name", type=str, default="RemoteDesk", help="The app name."
     )
     parser.add_argument(
+        "--exe-name",
+        type=str,
+        default="rustdesk.exe",
+        help="The on-disk executable file name inside the dist dir. "
+        "Kept separate from --app-name so the brand name can differ from the "
+        "binary name (the Flutter build always produces rustdesk.exe).",
+    )
+    parser.add_argument(
         "-v", "--version", type=str, default="", help="The app version."
     )
     parser.add_argument(
@@ -156,13 +164,13 @@ def read_lines_and_start_index(file_path, tag_start, tag_end):
     return lines, index_start
 
 
-def insert_components_between_tags(lines, index_start, app_name, dist_dir, template=False):
+def insert_components_between_tags(lines, index_start, app_name, exe_name, dist_dir, template=False):
     indent = g_indent_unit * 3
     path = Path(dist_dir)
     idx = 1
     for file_path in path.glob("**/*"):
         if file_path.is_file():
-            if file_path.name.lower() == f"{app_name}.exe".lower():
+            if file_path.name.lower() == exe_name.lower():
                 continue
 
             subdir = str(file_path.parent.relative_to(path))
@@ -195,13 +203,13 @@ def insert_components_between_tags(lines, index_start, app_name, dist_dir, templ
     return True
 
 
-def gen_auto_component(app_name, dist_dir, template=False):
+def gen_auto_component(app_name, exe_name, dist_dir, template=False):
     return gen_content_between_tags(
         "Package/Components/RustDesk.wxs",
         "<!--$AutoComonentStart$-->",
         "<!--$AutoComponentEnd$-->",
         lambda lines, index_start: insert_components_between_tags(
-            lines, index_start, app_name, dist_dir, template
+            lines, index_start, app_name, exe_name, dist_dir, template
         ),
     )
 
@@ -228,9 +236,9 @@ def put_app_exe_on_media2():
     target = Path(sys.argv[0]).parent.joinpath("Package/Components/RustDesk.wxs")
     with open(target, "r", encoding="utf-8") as f:
         content = f.read()
-    old = '<File Id="App.exe" Name="$(var.Product).exe" KeyPath="yes" Checksum="yes">'
+    old = '<File Id="App.exe" Name="$(var.AppExe)" KeyPath="yes" Checksum="yes">'
     new = (
-        '<File Id="App.exe" Name="$(var.Product).exe" KeyPath="yes" Checksum="yes"'
+        '<File Id="App.exe" Name="$(var.AppExe)" KeyPath="yes" Checksum="yes"'
         f' DiskId="{PER_CUSTOMER_DISK_ID}">'
     )
     if content.count(old) != 1:
@@ -254,6 +262,7 @@ def gen_pre_vars(args, dist_dir):
             f'{indent}<?define ProductLower="{args.app_name.lower()}" ?>\n',
             f'{indent}<?define RegKeyRoot=".$(var.ProductLower)" ?>\n',
             f'{indent}<?define RegKeyInstall="$(var.RegKeyRoot)\\Install" ?>\n',
+            f'{indent}<?define AppExe="{args.exe_name}" ?>\n',
             f'{indent}<?define BuildDir="{dist_dir}" ?>\n',
             f'{indent}<?define BuildDate="{g_build_date}" ?>\n',
             "\n",
@@ -460,8 +469,8 @@ def prepare_resources():
         return False
 
 
-def init_global_vars(dist_dir, app_name, args):
-    dist_app = dist_dir.joinpath(app_name + ".exe")
+def init_global_vars(dist_dir, app_name, exe_name, args):
+    dist_app = dist_dir.joinpath(exe_name)
 
     def read_process_output(args):
         process = subprocess.Popen(
@@ -531,12 +540,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     app_name = args.app_name
+    exe_name = args.exe_name
     dist_dir = Path(sys.argv[0]).parent.joinpath(args.dist_dir).resolve()
 
     if not prepare_resources():
         sys.exit(-1)
 
-    if not init_global_vars(dist_dir, app_name, args):
+    if not init_global_vars(dist_dir, app_name, exe_name, args):
         sys.exit(-1)
 
     update_license_file(app_name)
@@ -562,7 +572,7 @@ if __name__ == "__main__":
         if not put_app_exe_on_media2():
             sys.exit(-1)
 
-    if not gen_auto_component(app_name, dist_dir, args.template):
+    if not gen_auto_component(app_name, exe_name, dist_dir, args.template):
         sys.exit(-1)
 
     if not gen_custom_dialog_bitmaps():
