@@ -1078,15 +1078,15 @@ pub fn get_app_name() -> String {
 
 /// The on-disk executable name, decoupled from the brand name (`get_app_name`).
 ///
-/// The Windows build produces `rustdesk.exe` regardless of the brand name, because
-/// `flutter/windows/CMakeLists.txt` hardcodes `set(BINARY_NAME "rustdesk")`. The brand
-/// (product name, service name, install folder, config dir) still comes from
-/// `get_app_name()`, but any path that points at the executable file itself must use this.
+/// `flutter/windows/CMakeLists.txt` drives the on-disk name through `BINARY_NAME`;
+/// keep the two in sync. The brand (product name, service name, install folder,
+/// config dir) still comes from `get_app_name()`, but any path that points at the
+/// executable file itself must use this.
 #[inline]
 pub fn get_exe_name() -> String {
     #[cfg(target_os = "windows")]
     {
-        "rustdesk.exe".to_owned()
+        "RemoteDesk.exe".to_owned()
     }
     #[cfg(not(target_os = "windows"))]
     {

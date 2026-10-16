@@ -86,10 +86,10 @@ def make_parser():
     parser.add_argument(
         "--exe-name",
         type=str,
-        default="rustdesk.exe",
+        default="RemoteDesk.exe",
         help="The on-disk executable file name inside the dist dir. "
-        "Kept separate from --app-name so the brand name can differ from the "
-        "binary name (the Flutter build always produces rustdesk.exe).",
+        "Kept separate from --app-name so the brand name stays independent of "
+        "the binary name (BINARY_NAME in flutter/windows/CMakeLists.txt).",
     )
     parser.add_argument(
         "-v", "--version", type=str, default="", help="The app version."
