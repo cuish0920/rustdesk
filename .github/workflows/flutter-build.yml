@@ -410,8 +410,12 @@ jobs:
 
       - name: Build pre-built MSI template
         # Two things this works around: preprocess.py rewrites res/msi in place, so the
-        # tree is reset around this second variant; and it locates the app as
-        # <app-name>.exe inside the dist, so the dist copy is renamed to match.
+        # tree is reset around this second variant; and it locates the app inside the
+        # dist by --exe-name, so the dist copy is renamed to match that placeholder.
+        #
+        # The shipped msi keeps the Flutter binary name (rustdesk.exe) while the brand is
+        # RemoteDesk; this template instead uses the RDAPPNAM placeholder for both
+        # --app-name and --exe-name, so the skeleton stays internally consistent.
         #
         # The placeholder is chosen to keep this template as close to the shipped msi as
         # possible: eight characters like "RustDesk", and a valid 8.3 name, so WiX
@@ -430,7 +434,7 @@ jobs:
         run: |
           git checkout -- res/msi
           cp -r ./rustdesk ./rustdesk-msi-template
-          if (Test-Path ./rustdesk-msi-template/RemoteDesk.exe) { mv ./rustdesk-msi-template/RemoteDesk.exe ./rustdesk-msi-template/RDAPPNAM.exe } else { mv ./rustdesk-msi-template/rustdesk.exe ./rustdesk-msi-template/RDAPPNAM.exe }
+          mv ./rustdesk-msi-template/rustdesk.exe ./rustdesk-msi-template/RDAPPNAM.exe
           Set-Content -Path ./rustdesk-msi-template/custom.txt -Value 'placeholder' -NoNewline
           $assets = './rustdesk-msi-template/data/flutter_assets/assets'
           New-Item -ItemType Directory -Force -Path $assets | Out-Null
@@ -438,7 +442,7 @@ jobs:
             Set-Content -Path "$assets/$a" -Value 'placeholder' -NoNewline
           }
           pushd ./res/msi
-          python preprocess.py --arp --template --revision-version 0 -d ../../rustdesk-msi-template --app-name RDAPPNAM
+          python preprocess.py --arp --template --revision-version 0 -d ../../rustdesk-msi-template --app-name RDAPPNAM --exe-name RDAPPNAM.exe
           $msiPlatform = if ('${{ matrix.job.arch }}' -eq 'aarch64') { 'ARM64' } else { 'x64' }
           msbuild msi.sln -t:clean -p:Configuration=Release -p:Platform=$msiPlatform
           msbuild msi.sln -p:Configuration=Release -p:Platform=$msiPlatform /p:TargetVersion=Windows10
