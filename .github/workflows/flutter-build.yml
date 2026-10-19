@@ -1873,12 +1873,27 @@ jobs:
       - name: Rename archlinux package
         # makepkg names the package after PKGBUILD's pkgname (rustdesk), which is also the
         # installed package name; rename only the file so that identity stays intact.
+        # The build runs in a container, so the artefact can end up owned by root and a
+        # plain mv would fail; sudo is passwordless on GitHub runners.
         if: matrix.job.arch == 'x86_64' && env.UPLOAD_ARTIFACT == 'true'
         run: |
           shopt -s nullglob
-          for f in res/rustdesk-*.pkg.tar.zst; do
-            mv "$f" "res/RemoteDesk-$(basename "$f" | sed 's/^rustdesk-//')"
+          n=0
+          for f in res/*.pkg.tar.zst; do
+            base=${f##*/}
+            case "$base" in
+              rustdesk-*) ;;
+              *) continue ;;
+            esac
+            sudo mv -v "$f" "res/RemoteDesk-${base#rustdesk-}"
+            n=$((n + 1))
           done
+          if [ "$n" -eq 0 ]; then
+            echo "::error::no rustdesk-*.pkg.tar.zst found under res/; contents:"
+            ls -l res/ | tail -20
+            exit 1
+          fi
+          ls -l res/*.pkg.tar.zst
 
       - name: Publish archlinux package
         if: matrix.job.arch == 'x86_64' && env.UPLOAD_ARTIFACT == 'true'
